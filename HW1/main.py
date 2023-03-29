@@ -3,7 +3,12 @@ import numpy as np
 import os
 import re
 import math
-import normalize
+import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+import scipy.special as sp
+from numpy import inf
+
 
 # 檔案路徑
 paths = ["./test_datasets/teapot/","./test_datasets/bunny/"]
@@ -53,10 +58,10 @@ for path in paths:
         
     # 將 list 轉成 array
     lightlist = np.array(lightlist)
-    print(lightlist)
+    # print(lightlist)
     norms = np.linalg.norm(lightlist, axis=1, keepdims=True)
     lightlist = lightlist / norms
-    print(lightlist)
+    # print(lightlist)
     # print(lightlist)
 
     albedo_lst = np.zeros(image[0].shape)
@@ -64,14 +69,6 @@ for path in paths:
     Nx = np.zeros(image[0].shape)
     Ny = np.zeros(image[0].shape)
     Nz = np.zeros(image[0].shape)
-
-    # 建立空白的物件 array 用以計算照片的梯度
-    gx = np.empty(len(image), dtype=object) 
-    gy = np.empty(len(image), dtype=object)
-    # 計算像素值梯度
-    for i in range(len(image)):
-        gx[i], gy[i] = np.gradient(image[i])
-
 
     for i in range(image[0].shape[0]):
         for j in range(image[0].shape[1]):
@@ -87,8 +84,7 @@ for path in paths:
                 Nx[i][j] = G[0][0] / norm
                 Ny[i][j] = G[0][1] / norm
                 Nz[i][j] = G[0][2] / norm
-            
-            # N_lst[i][j] = math.sqrt(G[0][0]**2 + G[0][1]**2 + G[0][2]**2)
+            N_lst[i][j] = math.sqrt(G[0][0]**2 + G[0][1]**2 + G[0][2]**2) / norm
             
             # if(G[0][0] != 0):
             #     print(G[0][0],G[0][1],G[0][2])
@@ -102,20 +98,64 @@ for path in paths:
     #         if(Nx[i][j] >= 1):
     #             print(Nx[i][j])
 
-
     # 控制在0到255間               
-    # N_lst = (255-(N_lst*0.5 + 0.5)*255).astype(np.uint8)
-    # Nx = ((Nx*0.5 + 0.5)*255).astype(np.uint8)
-
-    # N_lst = cv2.merge((Nz, Ny, Nx))
-    # N_lst = cv2.normalize(N_lst, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC3)
+    N_lst = (255-(N_lst*0.5 + 0.5)*255).astype(np.uint8)
+    N_lst = cv2.merge((Nz, Ny, Nx))
+    N_lst = cv2.normalize(N_lst, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC3)
 
     albedo_lst = (albedo_lst/np.max(albedo_lst)*255).astype(np.uint8)       
     # print(Nx)
     Nx = 255 - cv2.normalize(Nx, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     Ny = 255 - cv2.normalize(Ny, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     Nz = 255 - cv2.normalize(Nz, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    print(N_lst)
+#-------------------------------------------------------------------------------
 
+    # 取 dx 跟 dy 跟 f(x,y)
+    dx = - Nx / Nz
+    dy = - Ny / Nz
+    dx = np.nan_to_num(dx)
+    dy = np.nan_to_num(dy)
+    row = np.cumsum(dx,axis=1)
+    column = np.cumsum(dy,axis=0)
+    dz = row + column
+    dz[np.isinf(dz)] = 0
+    dz = np.round(dz,decimals=4)
+
+    # write the file dx , dy
+    file = open(path + 'dx.txt','w')
+    file.write("dx = [")
+    for i in range(0,dx.shape[0]):
+        for j in range(0,dx.shape[1]):
+            file.write("{} ".format(dx[i][j]))
+        file.write("\n")
+    file.write("]\n")
+    file.close()
+    
+    file = open(path + 'dy.txt','w')
+    file.write("dy = [")
+    for i in range(0,dy.shape[0]):
+        for j in range(0,dy.shape[1]):
+            file.write("{} ".format(dy[i][j]))
+        file.write("\n")
+    file.write("]\n")
+    file.close()
+    
+    file = open(path + 'dz.txt','w')
+    file.write("dz = [")
+    for i in range(0,dz.shape[0]):
+        for j in range(0,dz.shape[1]):
+            file.write("{} ".format(dz[i][j]))
+        file.write("\n")
+    file.write("]\n")
+    file.close()
+
+    
+
+    # print(dx)
+    # print(dy)   
+    # print(dz) 
+#-------------------------------------------------------------------------------
     cv2.imshow('Albedo', albedo_lst)
 
     # 顯示圖片
@@ -140,25 +180,6 @@ for path in paths:
     # cv2.imwrite(path + 'Normal.png', N_lst)
 
 
-
-
-
-
-# 計算表面法向量
-# A = np.zeros((height*width, 3))
-# for i in range(height):
-#     for j in range(width):
-
-        
-# G, _, _, _ = np.linalg.lstsq(A, np.ones((height*width, 1)), rcond=None)
-# normals = np.reshape(np.sqrt(np.sum(np.square(G), axis=1)), (height, width, 1)) * G
-# normals = normals / np.sqrt(np.sum(np.square(normals), axis=2, keepdims=True))
-
-# # 估計反射率
-# albedo = np.zeros((height, width))
-# for i in range(4):
-#     albedo += np.maximum(np.zeros((height, width)), np.sum(lights[i]*normals, axis=2)) * images[i]
-# albedo = albedo / 4
 
 # # 還原影像深度
 # depth = np.zeros((height, width))
