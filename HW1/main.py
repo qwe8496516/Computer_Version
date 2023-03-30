@@ -105,22 +105,28 @@ for path in paths:
 
     albedo_lst = (albedo_lst/np.max(albedo_lst)*255).astype(np.uint8)       
     # print(Nx)
-    Nx = 255 - cv2.normalize(Nx, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    Ny = 255 - cv2.normalize(Ny, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
-    Nz = 255 - cv2.normalize(Nz, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    Nx = cv2.normalize(Nx, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    Ny = cv2.normalize(Ny, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
+    Nz = cv2.normalize(Nz, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=cv2.CV_8U)
     print(N_lst)
 #-------------------------------------------------------------------------------
 
     # 取 dx 跟 dy 跟 f(x,y)
-    dx = - Nx / Nz
-    dy = - Ny / Nz
-    dx = np.nan_to_num(dx)
-    dy = np.nan_to_num(dy)
-    row = np.cumsum(dx,axis=1)
-    column = np.cumsum(dy,axis=0)
+    dx = - (Nx / Nz)
+    dy = - (Ny / Nz)
+    where_are_inf = np.isinf(dx)
+    dx[where_are_inf] = 0
+    where_are_inf = np.isinf(dy)
+    dy[where_are_inf] = 0
+    row = np.cumsum(dx,axis=0)
+    column = np.cumsum(dy,axis=1)
     dz = row + column
-    dz[np.isinf(dz)] = 0
+    # dz[np.isinf(dz)] = 0
+    dx = np.round(dx,decimals=4)
+    dy = np.round(dy,decimals=4)
     dz = np.round(dz,decimals=4)
+    row = np.round(row,decimals=4)
+    column = np.round(column,decimals=4)
 
     # write the file dx , dy
     file = open(path + 'dx.txt','w')
@@ -150,6 +156,23 @@ for path in paths:
     file.write("]\n")
     file.close()
 
+    file = open(path + 'row.txt','w')
+    file.write("row = [")
+    for i in range(0,row.shape[0]):
+        for j in range(0,row.shape[1]):
+            file.write("{} ".format(row[i][j]))
+        file.write("\n")
+    file.write("]\n")
+    file.close()
+
+    file = open(path + 'column.txt','w')
+    file.write("column = [")
+    for i in range(0,column.shape[0]):
+        for j in range(0,column.shape[1]):
+            file.write("{} ".format(column[i][j]))
+        file.write("\n")
+    file.write("]\n")
+    file.close()
     
 
     # print(dx)
