@@ -11,7 +11,7 @@ from numpy import inf
 
 
 # 檔案路徑
-paths = ["./test_datasets/teapot/","./test_datasets/bunny/"]
+paths = ["./test_datasets/teapot/","./test_datasets/bunny/","./test_datasets/drug/"]
 
 for path in paths:
     # 讀取五張圖片
