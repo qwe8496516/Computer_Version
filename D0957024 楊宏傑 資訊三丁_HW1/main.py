@@ -95,8 +95,8 @@ for path in paths:
 #-------------------------------------------------------------------------------
 
     # 取 dx 跟 dy 跟 f(x,y)
-    dx = - (N_lst[:,:,0] / N_lst[:,:,2])
-    dy = - (N_lst[:,:,1] / N_lst[:,:,2])
+    dx = - (N_lst[:,:,1] / N_lst[:,:,2])
+    dy = - (N_lst[:,:,0] / N_lst[:,:,2])
     dx = dx - dx[0,0]
     dy = dy - dy[0,0]
     where_are_inf = np.isinf(dx)
@@ -106,6 +106,7 @@ for path in paths:
     row = np.cumsum(dx,axis=1)
     column = np.cumsum(dy,axis=0)
     dz = row + column
+    dz = dz - dz[0,0]
     # dz[np.isinf(dz)] = 0
     dx = np.round(dx,decimals=4)
     dy = np.round(dy,decimals=4)
