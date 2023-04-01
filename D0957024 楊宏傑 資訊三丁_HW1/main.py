@@ -24,22 +24,6 @@ for path in paths:
         img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
         image.append(img)
 
-    # 圖像梯度方向
-    dx = []
-    dy = []
-    for i in range(0,len(image)):
-        x,y = np.gradient(image[i])
-        dx.append(x)
-        dy.append(y)
-
-
-    # 試著印出 dx 跟 dy 
-    # cv2.imshow("f",dx[0])
-    # cv2.waitKey()
-    # cv2.imshow("r",dy[0])
-    # cv2.waitKey()
-
-
     # 定義照明位置和強度
     file = open(path + "light.txt", "r")
     # 讀取 file 中的每一行
@@ -61,7 +45,6 @@ for path in paths:
     # print(lightlist)
     norms = np.linalg.norm(lightlist, axis=1, keepdims=True)
     lightlist = lightlist / norms
-    # print(lightlist)
     # print(lightlist)
 
     albedo_lst = np.zeros(image[0].shape)
@@ -100,7 +83,7 @@ for path in paths:
 
     # 控制在0到255間               
     N_lst = (255-(N_lst*0.5 + 0.5)*255).astype(np.uint8)
-    N_lst = cv2.merge((Nz, Ny, Nx))
+    N_lst = cv2.merge((Nx, Ny, Nz))
     N_lst = cv2.normalize(N_lst, None, 0, 255, cv2.NORM_MINMAX, cv2.CV_8UC3)
 
     albedo_lst = (albedo_lst/np.max(albedo_lst)*255).astype(np.uint8)       
@@ -112,14 +95,16 @@ for path in paths:
 #-------------------------------------------------------------------------------
 
     # 取 dx 跟 dy 跟 f(x,y)
-    dx = - (Nx / Nz)
-    dy = - (Ny / Nz)
+    dx = - (N_lst[:,:,0] / N_lst[:,:,2])
+    dy = - (N_lst[:,:,1] / N_lst[:,:,2])
+    dx = dx - dx[0,0]
+    dy = dy - dy[0,0]
     where_are_inf = np.isinf(dx)
     dx[where_are_inf] = 0
     where_are_inf = np.isinf(dy)
     dy[where_are_inf] = 0
-    row = np.cumsum(dx,axis=0)
-    column = np.cumsum(dy,axis=1)
+    row = np.cumsum(dx,axis=1)
+    column = np.cumsum(dy,axis=0)
     dz = row + column
     # dz[np.isinf(dz)] = 0
     dx = np.round(dx,decimals=4)
